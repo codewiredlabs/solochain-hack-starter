@@ -226,5 +226,25 @@ mod benchmarks {
 		assert_eq!(Events::<T>::get(event_id).map(|e| e.status), Some(EventStatus::Settled));
 	}
 
+	/// `n` tickets, each with its own owner, all deleted by one call that also deletes the event
+	/// and returns the deposit. A call that stops early does less work.
+	#[benchmark]
+	fn purge_event(n: Linear<0, { T::RemoveItemsLimit::get().min(T::MaxCapacity::get()) }>) {
+		let organizer: T::AccountId = account("organizer", 0, SEED);
+		let event_id = create_open_event::<T>(&organizer);
+		for i in 0..n {
+			issue_ticket::<T>(event_id, &account("holder", i, SEED));
+		}
+		let ends_at = Events::<T>::get(event_id).expect("the event exists").ends_at;
+		T::BlockNumberProvider::set_block_number(ends_at);
+		assert_ok!(Ticketing::<T>::settle_event(RawOrigin::Signed(organizer).into(), event_id));
+		let caller: T::AccountId = whitelisted_caller();
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(caller), event_id);
+
+		assert!(!Events::<T>::contains_key(event_id));
+	}
+
 	impl_benchmark_test_suite!(Ticketing, crate::mock::new_test_ext(), crate::mock::Test);
 }

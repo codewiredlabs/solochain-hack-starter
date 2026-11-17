@@ -193,7 +193,8 @@ impl pallet_counter::Config for Runtime {
 parameter_types! {
 	/// Seed of every event's escrow account. Changing it would orphan existing escrows.
 	pub const TicketingPalletId: PalletId = PalletId(*b"py/tickt");
-	/// Locked by the organizer per event and returned on settlement. Also discourages spam.
+	/// Locked by the organizer per event and returned when the settled event is purged from
+	/// storage. Also discourages spam.
 	pub const EventDeposit: Balance = UNIT;
 }
 
@@ -210,5 +211,8 @@ impl pallet_ticketing::Config for Runtime {
 	type EventDeposit = EventDeposit;
 	type MaxCapacity = ConstU32<10_000>;
 	type MaxNameLength = ConstU32<64>;
+	// A full purge call stays a small fraction of the block weight. A parachain should pick a
+	// lower value to fit its proof size limit.
+	type RemoveItemsLimit = ConstU32<1_000>;
 	type WeightInfo = pallet_ticketing::weights::SubstrateWeight<Runtime>;
 }

@@ -23,6 +23,10 @@ pub type TicketIndex = u32;
 ///      │ settle_event (after ends_at)               │ settle_event (after every ticket is refunded)
 ///      ▼                                            ▼
 ///   Settled ◄───────────────────────────────────────┘
+///      │
+///      │ purge_event (repeated until no tickets are left)
+///      ▼
+///   deleted from storage, deposit returned
 /// ```
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
 pub enum EventStatus {
@@ -30,7 +34,8 @@ pub enum EventStatus {
 	Scheduled,
 	/// The organizer called off the event. Every ticket can be refunded at face value.
 	Cancelled,
-	/// The escrow was paid out to the organizer. The event is closed for good.
+	/// The ticket sales were paid out to the organizer. The event is closed for good and can be
+	/// purged from storage.
 	Settled,
 }
 
@@ -45,7 +50,8 @@ pub struct EventDetails<AccountId, Balance, BlockNumber, Name> {
 	pub capacity: u32,
 	/// Tickets sold so far. Also the [`TicketIndex`] the next ticket will get.
 	pub sold: u32,
-	/// Tickets sold and not refunded. Settling a cancelled event requires this to reach zero.
+	/// Tickets in storage: sold, not refunded and not yet purged. Settling a cancelled event
+	/// requires this to reach zero.
 	pub active: u32,
 	/// Face value of one ticket, paid into the event's escrow account.
 	pub price: Balance,
@@ -62,6 +68,7 @@ pub struct EventDetails<AccountId, Balance, BlockNumber, Name> {
 	/// Block at which the event ends. Check-in closes and the organizer can settle.
 	pub ends_at: BlockNumber,
 	/// Amount the organizer locked in escrow when creating the event (`Config::EventDeposit`).
+	/// Returned when the event is purged.
 	pub deposit: Balance,
 	/// Where the event is in its lifecycle.
 	pub status: EventStatus,

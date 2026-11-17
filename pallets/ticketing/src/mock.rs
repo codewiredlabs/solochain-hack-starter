@@ -53,6 +53,8 @@ impl frame_system::Config for Test {
 pub const EXISTENTIAL_DEPOSIT: Balance = 10;
 pub const EVENT_DEPOSIT: Balance = 100;
 pub const MAX_CAPACITY: u32 = 100;
+/// Small, so the tests can purge an event over several calls.
+pub const REMOVE_ITEMS_LIMIT: u32 = 2;
 
 #[derive_impl(pallet_balances::config_preludes::TestDefaultConfig)]
 impl pallet_balances::Config for Test {
@@ -72,6 +74,7 @@ impl pallet_ticketing::Config for Test {
 	type EventDeposit = ConstU64<EVENT_DEPOSIT>;
 	type MaxCapacity = ConstU32<MAX_CAPACITY>;
 	type MaxNameLength = ConstU32<32>;
+	type RemoveItemsLimit = ConstU32<REMOVE_ITEMS_LIMIT>;
 	type WeightInfo = ();
 }
 
@@ -103,4 +106,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	// Events are only recorded from block 1 onwards.
 	ext.execute_with(|| System::set_block_number(1));
 	ext
+}
+
+/// Run `test` on a fresh chain, then check that the pallet's storage invariants still hold.
+pub fn build_and_execute(test: impl FnOnce()) {
+	new_test_ext().execute_with(|| {
+		test();
+		Ticketing::do_try_state().expect("storage invariants hold after the test");
+	});
 }

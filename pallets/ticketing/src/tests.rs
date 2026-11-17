@@ -1,8 +1,16 @@
 use crate::{
 	mock::*, Error, Event, EventId, EventStatus, Events, NextEventId, Tickets, TicketsHeld,
+	WeightInfo,
 };
 use frame_support::{
-	assert_noop, assert_ok, pallet_prelude::ConstU32, traits::fungible::Inspect, BoundedVec,
+	assert_noop, assert_ok,
+	dispatch::DispatchResultWithPostInfo,
+	pallet_prelude::ConstU32,
+	traits::{
+		fungible::{Inspect, Mutate},
+		tokens::Preservation,
+	},
+	BoundedVec,
 };
 use sp_runtime::{DispatchResult, Percent, TokenError};
 
@@ -72,7 +80,7 @@ fn escrow(event_id: EventId) -> Balance {
 
 #[test]
 fn create_event_locks_deposit_in_escrow() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 
 		assert_eq!(event_id, 0);
@@ -95,7 +103,7 @@ fn create_event_locks_deposit_in_escrow() {
 
 #[test]
 fn create_event_validates_terms() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		assert_noop!(create(0, PRICE, 1, 1, 10, 20), Error::<Test>::InvalidCapacity);
 		assert_noop!(create(MAX_CAPACITY + 1, PRICE, 1, 1, 10, 20), Error::<Test>::InvalidCapacity);
 		assert_noop!(create(3, PRICE, 0, 1, 10, 20), Error::<Test>::InvalidPurchaseLimit);
@@ -120,7 +128,7 @@ fn create_event_validates_terms() {
 
 #[test]
 fn buy_ticket_moves_payment_into_escrow() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 
 		assert_ok!(buy(ALICE, event_id));
@@ -143,7 +151,7 @@ fn buy_ticket_moves_payment_into_escrow() {
 
 #[test]
 fn buy_ticket_respects_the_sale_window() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = NextEventId::<Test>::get();
 		assert_ok!(create(CAPACITY, PRICE, MAX_PER_BUYER, 5, STARTS_AT, ENDS_AT));
 
@@ -157,7 +165,7 @@ fn buy_ticket_respects_the_sale_window() {
 
 #[test]
 fn buy_ticket_enforces_capacity_and_per_buyer_limit() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 
 		assert_ok!(buy(ALICE, event_id));
@@ -173,7 +181,7 @@ fn buy_ticket_enforces_capacity_and_per_buyer_limit() {
 
 #[test]
 fn buy_ticket_fails_for_unknown_or_cancelled_events() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		assert_noop!(buy(ALICE, 42), Error::<Test>::EventNotFound);
 
 		let event_id = create_event();
@@ -184,7 +192,7 @@ fn buy_ticket_fails_for_unknown_or_cancelled_events() {
 
 #[test]
 fn buy_ticket_cannot_reap_the_buyer() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 
 		// Paying 100 would leave Dave with 5, below the existential deposit of 10. Purchases use
@@ -199,7 +207,7 @@ fn buy_ticket_cannot_reap_the_buyer() {
 
 #[test]
 fn resale_is_capped_and_pays_a_royalty() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		let cap = PRICE + RESALE_CAP.mul_floor(PRICE);
@@ -253,7 +261,7 @@ fn resale_is_capped_and_pays_a_royalty() {
 
 #[test]
 fn listings_can_be_withdrawn_and_not_self_bought() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(Ticketing::list_ticket(RuntimeOrigin::signed(ALICE), event_id, 0, PRICE));
@@ -284,7 +292,7 @@ fn listings_can_be_withdrawn_and_not_self_bought() {
 
 #[test]
 fn resale_respects_the_per_buyer_limit() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(buy(BOB, event_id));
@@ -300,7 +308,7 @@ fn resale_respects_the_per_buyer_limit() {
 
 #[test]
 fn resale_closes_when_the_event_starts() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(Ticketing::list_ticket(RuntimeOrigin::signed(ALICE), event_id, 0, PRICE));
@@ -323,7 +331,7 @@ fn resale_closes_when_the_event_starts() {
 
 #[test]
 fn check_in_admits_once_and_ends_resale() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(Ticketing::list_ticket(RuntimeOrigin::signed(ALICE), event_id, 0, PRICE));
@@ -355,7 +363,7 @@ fn check_in_admits_once_and_ends_resale() {
 
 #[test]
 fn checked_in_tickets_cannot_be_listed() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		// Doors can open before the event starts, while resale is still open.
@@ -370,7 +378,7 @@ fn checked_in_tickets_cannot_be_listed() {
 
 #[test]
 fn check_in_closes_when_the_event_ends() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 
@@ -388,7 +396,7 @@ fn check_in_closes_when_the_event_ends() {
 
 #[test]
 fn cancelled_events_refund_every_ticket_then_return_the_deposit() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(buy(BOB, event_id));
@@ -434,16 +442,21 @@ fn cancelled_events_refund_every_ticket_then_return_the_deposit() {
 		assert!(!TicketsHeld::<Test>::contains_key(event_id, ALICE));
 		assert!(!TicketsHeld::<Test>::contains_key(event_id, BOB));
 
+		// Every ticket was refunded, so there are no sales to pay out.
 		assert_ok!(Ticketing::settle_event(RuntimeOrigin::signed(ORGANIZER), event_id));
+		System::assert_last_event(Event::EventSettled { event_id, payout: 0 }.into());
+		assert_eq!(escrow(event_id), EVENT_DEPOSIT);
+
+		assert_ok!(Ticketing::purge_event(RuntimeOrigin::signed(ORGANIZER), event_id));
+		System::assert_last_event(Event::EventPurged { event_id, deposit: EVENT_DEPOSIT }.into());
 		assert_eq!(balance(ORGANIZER), INITIAL_BALANCE);
 		assert_eq!(escrow(event_id), 0);
-		System::assert_last_event(Event::EventSettled { event_id, payout: EVENT_DEPOSIT }.into());
 	});
 }
 
 #[test]
 fn refunds_go_to_the_current_owner_after_a_resale() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(Ticketing::list_ticket(RuntimeOrigin::signed(ALICE), event_id, 0, 120));
@@ -459,7 +472,7 @@ fn refunds_go_to_the_current_owner_after_a_resale() {
 
 #[test]
 fn events_cannot_be_cancelled_once_started() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		System::set_block_number(STARTS_AT);
 		assert_noop!(
@@ -474,8 +487,8 @@ fn events_cannot_be_cancelled_once_started() {
 // ---------------------------------------------------------------------------------------------
 
 #[test]
-fn settle_pays_the_escrow_out_after_the_event() {
-	new_test_ext().execute_with(|| {
+fn settle_pays_ticket_sales_out_after_the_event() {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 		assert_ok!(buy(BOB, event_id));
@@ -492,11 +505,11 @@ fn settle_pays_the_escrow_out_after_the_event() {
 
 		assert_ok!(Ticketing::settle_event(RuntimeOrigin::signed(ORGANIZER), event_id));
 
-		let payout = EVENT_DEPOSIT + 2 * PRICE;
+		let payout = 2 * PRICE;
 		assert_eq!(balance(ORGANIZER), INITIAL_BALANCE - EVENT_DEPOSIT + payout);
-		assert_eq!(escrow(event_id), 0);
-		// The empty escrow account was removed from state.
-		assert!(!System::account_exists(&Ticketing::escrow_account(event_id)));
+		// The deposit stays behind and keeps the escrow account alive until the purge.
+		assert_eq!(escrow(event_id), EVENT_DEPOSIT);
+		assert!(System::account_exists(&Ticketing::escrow_account(event_id)));
 		assert_eq!(Events::<Test>::get(event_id).unwrap().status, EventStatus::Settled);
 		System::assert_last_event(Event::EventSettled { event_id, payout }.into());
 
@@ -510,7 +523,7 @@ fn settle_pays_the_escrow_out_after_the_event() {
 
 #[test]
 fn free_events_work_end_to_end() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event_with_price(0);
 
 		assert_ok!(buy(ALICE, event_id));
@@ -523,7 +536,126 @@ fn free_events_work_end_to_end() {
 
 		System::set_block_number(ENDS_AT);
 		assert_ok!(Ticketing::settle_event(RuntimeOrigin::signed(ORGANIZER), event_id));
+		System::assert_last_event(Event::EventSettled { event_id, payout: 0 }.into());
+		assert_ok!(Ticketing::purge_event(RuntimeOrigin::signed(ORGANIZER), event_id));
 		assert_eq!(balance(ORGANIZER), INITIAL_BALANCE);
+	});
+}
+
+// ---------------------------------------------------------------------------------------------
+// Purging
+// ---------------------------------------------------------------------------------------------
+
+/// Create an event, sell its tickets to `buyers` and settle it.
+fn settled_event(buyers: &[AccountId]) -> EventId {
+	let event_id = create_event();
+	for buyer in buyers {
+		assert_ok!(buy(*buyer, event_id));
+	}
+	System::set_block_number(ENDS_AT);
+	assert_ok!(Ticketing::settle_event(RuntimeOrigin::signed(ORGANIZER), event_id));
+	event_id
+}
+
+fn purge(who: AccountId, event_id: EventId) -> DispatchResultWithPostInfo {
+	Ticketing::purge_event(RuntimeOrigin::signed(who), event_id)
+}
+
+#[test]
+fn only_settled_events_can_be_purged() {
+	build_and_execute(|| {
+		assert_noop!(purge(CHARLIE, 42), Error::<Test>::EventNotFound);
+
+		let event_id = create_event();
+		assert_ok!(buy(ALICE, event_id));
+		assert_noop!(purge(CHARLIE, event_id), Error::<Test>::EventNotSettled);
+
+		assert_ok!(Ticketing::cancel_event(RuntimeOrigin::signed(ORGANIZER), event_id));
+		assert_noop!(purge(CHARLIE, event_id), Error::<Test>::EventNotSettled);
+	});
+}
+
+#[test]
+fn purge_deletes_tickets_in_batches_then_returns_the_deposit() {
+	build_and_execute(|| {
+		// Another event's tickets share the storage maps and must survive the purge.
+		let other_event = create_event();
+		assert_ok!(buy(ALICE, other_event));
+		// Three tickets with a limit of two per call: the purge takes two calls.
+		assert_eq!(REMOVE_ITEMS_LIMIT, 2);
+		let event_id = settled_event(&[ALICE, ALICE, BOB]);
+		let organizer_before = balance(ORGANIZER);
+
+		// Charlie has nothing to do with the event but may clean it up.
+		let info = purge(CHARLIE, event_id).unwrap();
+		assert_eq!(info.actual_weight, Some(<() as WeightInfo>::purge_event(2)));
+		System::assert_last_event(
+			Event::TicketsPurged { event_id, removed: 2, remaining: 1 }.into(),
+		);
+		assert_eq!(Tickets::<Test>::iter_prefix(event_id).count(), 1);
+		assert_eq!(Events::<Test>::get(event_id).unwrap().active, 1);
+		// The deposit is only returned once the event is gone.
+		assert_eq!(balance(ORGANIZER), organizer_before);
+		assert_eq!(escrow(event_id), EVENT_DEPOSIT);
+
+		let info = purge(CHARLIE, event_id).unwrap();
+		assert_eq!(info.actual_weight, Some(<() as WeightInfo>::purge_event(1)));
+		System::assert_last_event(Event::EventPurged { event_id, deposit: EVENT_DEPOSIT }.into());
+
+		assert!(!Events::<Test>::contains_key(event_id));
+		assert_eq!(Tickets::<Test>::iter_prefix(event_id).count(), 0);
+		assert_eq!(TicketsHeld::<Test>::iter_prefix(event_id).count(), 0);
+		assert!(!System::account_exists(&Ticketing::escrow_account(event_id)));
+		assert_eq!(balance(ORGANIZER), organizer_before + EVENT_DEPOSIT);
+		// Overall the organizer earned the three sales. Only the other event's deposit is
+		// still locked.
+		assert_eq!(balance(ORGANIZER), INITIAL_BALANCE - EVENT_DEPOSIT + 3 * PRICE);
+		assert_eq!(balance(CHARLIE), INITIAL_BALANCE);
+		assert_eq!(Ticketing::max_resale_price(event_id), None);
+		assert_eq!(Ticketing::escrow_balance(event_id), 0);
+
+		assert_eq!(Tickets::<Test>::get(other_event, 0).unwrap().owner, ALICE);
+		assert_eq!(TicketsHeld::<Test>::get(other_event, ALICE), 1);
+
+		assert_noop!(purge(CHARLIE, event_id), Error::<Test>::EventNotFound);
+	});
+}
+
+#[test]
+fn purge_finishes_in_one_call_when_the_tickets_fit_the_limit() {
+	build_and_execute(|| {
+		// Exactly `REMOVE_ITEMS_LIMIT` tickets: no empty follow-up call is needed.
+		let event_id = settled_event(&[ALICE, BOB]);
+
+		assert_ok!(purge(ORGANIZER, event_id));
+
+		System::assert_last_event(Event::EventPurged { event_id, deposit: EVENT_DEPOSIT }.into());
+		assert!(!Events::<Test>::contains_key(event_id));
+		assert_eq!(Tickets::<Test>::iter_prefix(event_id).count(), 0);
+	});
+}
+
+#[test]
+fn try_state_detects_broken_invariants() {
+	new_test_ext().execute_with(|| {
+		let event_id = create_event();
+		assert_ok!(buy(ALICE, event_id));
+		assert_ok!(Ticketing::do_try_state());
+
+		// A purchase count without a matching ticket.
+		TicketsHeld::<Test>::insert(event_id, BOB, 1);
+		assert!(Ticketing::do_try_state().is_err());
+		TicketsHeld::<Test>::remove(event_id, BOB);
+
+		// An escrow that could no longer pay Alice's refund.
+		let escrow_account = Ticketing::escrow_account(event_id);
+		assert_ok!(<Balances as Mutate<AccountId>>::transfer(
+			&escrow_account,
+			&BOB,
+			PRICE,
+			Preservation::Preserve
+		));
+		assert!(Ticketing::do_try_state().is_err());
 	});
 }
 
@@ -533,7 +665,7 @@ fn free_events_work_end_to_end() {
 
 #[test]
 fn view_functions_report_event_state() {
-	new_test_ext().execute_with(|| {
+	build_and_execute(|| {
 		let event_id = create_event();
 		assert_ok!(buy(ALICE, event_id));
 
