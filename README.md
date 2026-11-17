@@ -263,3 +263,25 @@ Install [nix](https://nixos.org/) and [nix-direnv](https://github.com/nix-commun
 
 ## Contributing
 Anyone can contribute to this repository, Fork this repository, make changes, create and issue and reference your issue No. in your Pull Request message and our dedicated team members will handle it. We will also try as much as possible to stay up to date with the mainstream repository by updating this boiler plate with all the Core updates and Releases from the Polkadot SDK Team.
+
+### Code formatting
+
+Rust code follows the Polkadot SDK's own rules in [`.rustfmt.toml`](./.rustfmt.toml), so code moves between
+this repo, the SDK and its templates without reformatting. Some of those rules are unstable, so format with the
+nightly `rustfmt`:
+
+```sh
+rustup toolchain install nightly --profile minimal --component rustfmt   # once
+cargo +nightly fmt --all            # format everything
+cargo +nightly fmt --all -- --check # what CI should run
+```
+
+Plain `cargo fmt` uses the pinned stable toolchain, which skips the unstable rules and formats differently.
+
+* To check formatting before every commit, enable the hook in [`.githooks`](./.githooks) once per clone:
+  `git config core.hooksPath .githooks`.
+* To format on save in VS Code, point rust-analyzer at the nightly `rustfmt` in your workspace settings:
+  `"rust-analyzer.rustfmt.overrideCommand": ["rustup", "run", "nightly", "--", "rustfmt", "--edition", "2024"]`.
+* [`.editorconfig`](./.editorconfig) sets indentation and line endings for every other file type.
+* The commit that first applied these rules is listed in [`.git-blame-ignore-revs`](./.git-blame-ignore-revs).
+  Run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips it.
