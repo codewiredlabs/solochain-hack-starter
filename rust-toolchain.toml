@@ -1,0 +1,7 @@
+# Polkadot SDK stable2609 was built and tested with Rust 1.93.0 (see the release notes).
+# Pinning keeps local builds, CI and Docker on the same compiler.
+[toolchain]
+channel = "1.93.0"
+components = ["cargo", "clippy", "rust-analyzer", "rust-src", "rust-std", "rustc", "rustfmt"]
+targets = ["wasm32-unknown-unknown", "wasm32v1-none"]
+profile = "minimal"
