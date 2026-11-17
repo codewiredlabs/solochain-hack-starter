@@ -16,7 +16,8 @@ mod runtime {
         RuntimeHoldReason,
         RuntimeSlashReason,
         RuntimeLockId,
-        RuntimeTask
+        RuntimeTask,
+        RuntimeViewFunction
     )]
     pub struct Test;
 
@@ -39,7 +40,6 @@ parameter_types! {
 }
 
 impl pallet_counter::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type CounterMaxValue = CounterMaxValue;
     type WeightInfo = pallet_counter::weights::SubstrateWeight<Test>;
 }

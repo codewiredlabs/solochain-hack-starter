@@ -26,11 +26,13 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     // Configuration trait for the pallet.
+    //
+    // Note: there is no `type RuntimeEvent` here. Since Polkadot SDK stable2506 the
+    // `#[pallet::config]` macro automatically adds the bound
+    // `frame_system::Config<RuntimeEvent: From<Event<Self>>>`, so declaring it by hand is
+    // deprecated.
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        // Defines the event type for the pallet.
-        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
         // Defines the maximum value the counter can hold.
         #[pallet::constant]
         type CounterMaxValue: Get<u32>;
