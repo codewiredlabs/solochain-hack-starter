@@ -29,12 +29,16 @@ use frame_support::{
 	dispatch::DispatchClass,
 	parameter_types,
 	traits::{ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf},
+	PalletId,
 	weights::{
 		constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		IdentityFee, Weight,
 	},
 };
-use frame_system::limits::{BlockLength, BlockWeights};
+use frame_system::{
+	limits::{BlockLength, BlockWeights},
+	EnsureSigned,
+};
 use pallet_transaction_payment::{ConstFeeMultiplier, FungibleAdapter, Multiplier};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_runtime::{traits::One, Perbill};
@@ -44,7 +48,7 @@ use sp_version::RuntimeVersion;
 use super::{
 	AccountId, Aura, Balance, Balances, Block, BlockNumber, Hash, Nonce, PalletInfo, Runtime,
 	RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-	System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
+	System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, UNIT, VERSION,
 };
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
@@ -184,4 +188,27 @@ parameter_types! {
 impl pallet_counter::Config for Runtime {
 	type CounterMaxValue = CounterMaxValue;
 	type WeightInfo = pallet_counter::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	/// Seed of every event's escrow account. Changing it would orphan existing escrows.
+	pub const TicketingPalletId: PalletId = PalletId(*b"py/tickt");
+	/// Locked by the organizer per event and returned on settlement. Also discourages spam.
+	pub const EventDeposit: Balance = UNIT;
+}
+
+/// Configure the pallet-ticketing in pallets/ticketing.
+impl pallet_ticketing::Config for Runtime {
+	type Currency = Balances;
+	// Any signed account may buy. Replace with a personhood-checking origin to enforce
+	// "one person, one ticket".
+	type BuyerOrigin = EnsureSigned<AccountId>;
+	// A solochain measures time in its own blocks. A parachain should use
+	// `cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>`.
+	type BlockNumberProvider = System;
+	type PalletId = TicketingPalletId;
+	type EventDeposit = EventDeposit;
+	type MaxCapacity = ConstU32<10_000>;
+	type MaxNameLength = ConstU32<64>;
+	type WeightInfo = pallet_ticketing::weights::SubstrateWeight<Runtime>;
 }

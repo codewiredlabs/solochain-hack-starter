@@ -8,7 +8,7 @@ Polkadot Engineers suggests using this stand-alone version to start a new Relayc
 
 * 🔧 This standalone versions' runtime is configured with a single default pallet (pallet-template) as a starting point, and a handful of ready-made substrate framework pallets such as a [Balances pallet](https://paritytech.github.io/polkadot-sdk/master/pallet_balances/index.html). 
 
-* 👉 We took it one step further to demystify Substrate Pallets for intermediate and senior Rust developers who would love to get there hands dirty with creating custom Pallets on Substrate's FRAME (Framework for Runtime Aggregation of Modularized Entities), which is the business logic runtime engine that drives the polkadot network of Substrate blockchains. For this initial commit, we have added a basic Counter Pallet (pallet-counter) to get your feet wet and gently introduce fellow Rustaceans to the amazing world of decentralized web using Substrate Extrinsics and the Substrate FRAME. In subsequent updates to this code base (for those who will keep a tab on us), we will dive deeper into building pallets for real world use cases like: `Event Ticketing` and `Product Supply Chain`.
+* 👉 We took it one step further to demystify Substrate Pallets for intermediate and senior Rust developers who would love to get there hands dirty with creating custom Pallets on Substrate's FRAME (Framework for Runtime Aggregation of Modularized Entities), which is the business logic runtime engine that drives the polkadot network of Substrate blockchains. For this initial commit, we have added a basic Counter Pallet (pallet-counter) to get your feet wet and gently introduce fellow Rustaceans to the amazing world of decentralized web using Substrate Extrinsics and the Substrate FRAME. The second pallet is a real world use case: [Event Ticketing (pallet-ticketing)](./pallets/ticketing/README.md), with escrowed payments, capped resale with organizer royalties, check-in, cancellation with refunds, and settlement. A `Product Supply Chain` pallet may follow.
 
 ## High Level Code Base Structure
 
@@ -139,7 +139,14 @@ docker build -t solochain-hackathon-starter .
 
 It is important to factor in development time to write unit tests when you build Extrinsics that alter the blockchain runtime. Because we are big fans of unit testing, we made sure to add unit tests and benchmarking tests.
 
-Tor run the unit tests for pallet-counter pallet, run the following command from the root folder `cargo test --package pallet-counter`
+To run the unit tests for a pallet, run one of the following commands from the root folder:
+
+```sh
+cargo test --package pallet-counter
+cargo test --package pallet-ticketing
+# include the benchmark tests
+cargo test --package pallet-ticketing --features runtime-benchmarks
+```
 
 ### Start the chain and start producing blocks
 
@@ -229,7 +236,7 @@ macro, which is part of the [core FRAME pallet library](https://github.com/parit
 
 ### Pallets
 
-The runtime in this project is constructed using many FRAME pallets that ship with [the Substrate repository](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame) and a template pallet that is [defined in the `pallets`](./pallets/template/src/lib.rs) directory. Our backend Rust engineers added another pallet from scratch which was also [defined in the `pallets`](./pallets/counter/src/lib.rs) directory. We made a simple counter pallet that allows users to decrement and increment a counter that triggers state changes to the Runtime's transition logic.
+The runtime in this project is constructed using many FRAME pallets that ship with [the Substrate repository](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame) and a template pallet that is [defined in the `pallets`](./pallets/template/src/lib.rs) directory. Our backend Rust engineers added another pallet from scratch which was also [defined in the `pallets`](./pallets/counter/src/lib.rs) directory. We made a simple counter pallet that allows users to decrement and increment a counter that triggers state changes to the Runtime's transition logic. The [ticketing pallet](./pallets/ticketing/README.md) builds on that with money flows: per-event escrow accounts, capped resale, royalties, refunds and benchmarked weights.
 
 A FRAME pallet is comprised of a number of blockchain primitives, including:
 

@@ -214,4 +214,7 @@ mod runtime {
 
 	#[runtime::pallet_index(8)]
 	pub type Counter = pallet_counter;
+
+	#[runtime::pallet_index(9)]
+	pub type Ticketing = pallet_ticketing;
 }
