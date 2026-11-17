@@ -1,0 +1,22 @@
+# Editor defaults for every file type. Rust code is formatted by `cargo +nightly fmt --all`
+# (see .rustfmt.toml); these settings make editors start new files the same way.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{rs,toml}]
+indent_style = tab
+indent_size = 4
+max_line_length = 100
+
+[*.{js,json,md,sh,yml,yaml,nix}]
+indent_style = space
+indent_size = 2
+
+# Two trailing spaces are a line break in Markdown.
+[*.md]
+trim_trailing_whitespace = false

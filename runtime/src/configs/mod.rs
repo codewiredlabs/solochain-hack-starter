@@ -29,11 +29,11 @@ use frame_support::{
 	dispatch::DispatchClass,
 	parameter_types,
 	traits::{ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, VariantCountOf},
-	PalletId,
 	weights::{
 		constants::{RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		IdentityFee, Weight,
 	},
+	PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
