@@ -32,4 +32,5 @@ frame_benchmarking::define_benchmarks!(
 	[pallet_sudo, Sudo]
 	[pallet_template, Template]
 	[pallet_counter, Counter]
+	[pallet_ticketing, Ticketing]
 );

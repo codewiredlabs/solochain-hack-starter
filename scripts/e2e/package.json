@@ -1,0 +1,17 @@
+{
+  "name": "solochain-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end checks that drive a running solochain node over RPC.",
+  "license": "MIT-0",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "ticketing": "node ticketing.js"
+  },
+  "dependencies": {
+    "@polkadot/api": "17.0.2",
+    "@polkadot/util": "14.0.3"
+  }
+}

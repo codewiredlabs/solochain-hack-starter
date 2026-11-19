@@ -1,0 +1,4 @@
+# Formatting-only commits, skipped by `git blame` when blame.ignoreRevsFile points here.
+
+# Adopt the Polkadot SDK rustfmt rules workspace-wide
+e9db9ae7801dc1b2c89d004fbb9599dfb3749fd8

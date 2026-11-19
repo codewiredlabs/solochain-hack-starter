@@ -10,6 +10,7 @@ members = [
     "node", 
     "pallets/counter",
     "pallets/template",
+    "pallets/ticketing",
     "runtime",
 ]
 resolver = "2"
@@ -18,6 +19,7 @@ resolver = "2"
 solochain-starter-runtime = { path = "./runtime", default-features = false }
 pallet-template = { path = "./pallets/template", default-features = false }
 pallet-counter = { path = "./pallets/counter", default-features = false }
+pallet-ticketing = { path = "./pallets/ticketing", default-features = false }
 clap = { version = "4.5.13" }
 frame-benchmarking-cli = { version = "64.0.1", default-features = false }
 frame-metadata-hash-extension = { version = "0.17.0", default-features = false }

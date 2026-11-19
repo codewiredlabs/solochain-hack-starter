@@ -8,7 +8,7 @@ Polkadot Engineers suggests using this stand-alone version to start a new Relayc
 
 * 🔧 This standalone versions' runtime is configured with a single default pallet (pallet-template) as a starting point, and a handful of ready-made substrate framework pallets such as a [Balances pallet](https://paritytech.github.io/polkadot-sdk/master/pallet_balances/index.html). 
 
-* 👉 We took it one step further to demystify Substrate Pallets for intermediate and senior Rust developers who would love to get there hands dirty with creating custom Pallets on Substrate's FRAME (Framework for Runtime Aggregation of Modularized Entities), which is the business logic runtime engine that drives the polkadot network of Substrate blockchains. For this initial commit, we have added a basic Counter Pallet (pallet-counter) to get your feet wet and gently introduce fellow Rustaceans to the amazing world of decentralized web using Substrate Extrinsics and the Substrate FRAME. In subsequent updates to this code base (for those who will keep a tab on us), we will dive deeper into building pallets for real world use cases like: `Event Ticketing` and `Product Supply Chain`.
+* 👉 We took it one step further to demystify Substrate Pallets for intermediate and senior Rust developers who would love to get there hands dirty with creating custom Pallets on Substrate's FRAME (Framework for Runtime Aggregation of Modularized Entities), which is the business logic runtime engine that drives the polkadot network of Substrate blockchains. For this initial commit, we have added a basic Counter Pallet (pallet-counter) to get your feet wet and gently introduce fellow Rustaceans to the amazing world of decentralized web using Substrate Extrinsics and the Substrate FRAME. The second pallet is a real world use case: [Event Ticketing (pallet-ticketing)](./pallets/ticketing/README.md), with escrowed payments, capped resale with organizer royalties, check-in, cancellation with refunds, and settlement. A `Product Supply Chain` pallet may follow.
 
 ## High Level Code Base Structure
 
@@ -38,6 +38,9 @@ packages required to successfully compile this code base - We have outlined the 
 
 * 👉 Check this
 [Rust installation instructions](https://www.rust-lang.org/tools/install) and [Polkadot SDK Dependencies](https://developers.polkadot.com/parachains/install-polkadot-sdk/) for your operating system if yours isn't covered below.
+
+* 🚀 Just want to run the chain and use it from your browser? Follow
+[Run the Solochain on Linux or macOS](./docs/RUNNING.md): install, build, start a development chain and drive it from Polkadot-JS Apps, step by step.
 
 ### Setup Linux (Tested on Ubuntu 24.10 and on Ubuntu 22.04 under WSL2)
 Rust supports most Linux distributions. Depending on the specific distribution and version of the operating system you use, you might need to add some software dependencies to your environment. In general, your development environment should include a linker or C-compatible compiler, such as clang and an appropriate integrated development environment (IDE) like Visual Studio Code.
@@ -139,7 +142,21 @@ docker build -t solochain-hackathon-starter .
 
 It is important to factor in development time to write unit tests when you build Extrinsics that alter the blockchain runtime. Because we are big fans of unit testing, we made sure to add unit tests and benchmarking tests.
 
-Tor run the unit tests for pallet-counter pallet, run the following command from the root folder `cargo test --package pallet-counter`
+To run the unit tests for a pallet, run one of the following commands from the root folder:
+
+```sh
+cargo test --package pallet-counter
+cargo test --package pallet-ticketing
+# include the benchmark tests
+cargo test --package pallet-ticketing --features runtime-benchmarks
+```
+
+To check a pallet inside the real runtime, run the end-to-end script in [`scripts/e2e`](./scripts/e2e/README.md) against a
+running development chain. It needs Node.js 18 or later:
+
+```sh
+cd scripts/e2e && npm ci && npm run ticketing
+```
 
 ### Start the chain and start producing blocks
 
@@ -186,7 +203,7 @@ db keystore network
 
 ### Connect with Polkadot-JS Apps Front-End
 
-After you start the Node locally, you should confirm that the starter node is creating blocks by making sure that the block finalized #No is increasing. You can then interact with it using the hosted version of the [Polkadot/Substrate Portal](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) front-end by connecting to the local node endpoint. 
+After you start the Node locally, you should confirm that the starter node is creating blocks by making sure that the block finalized #No is increasing. You can then interact with it using the hosted version of the [Polkadot/Substrate Portal](https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer) front-end by connecting to the local node endpoint. Recent browsers ask for permission before a website can connect to your own computer: allow it. [Run the Solochain on Linux or macOS](./docs/RUNNING.md#5-open-polkadot-js-apps) covers that prompt, Safari, and running Apps locally with Docker.
 
 Use the menu to Navigate to 'Developer -> Extrinsics' page  and under the Submission tab, click on the drop down that says 'submit the following extrinsic' and select the counter pallet. You can try to decrement or increment the counter by adding your desired amount and clicking on the 'Submit Transaction' button. Complete the transaction by clicking on the 'Sign and Submit' button on the modal dialog that shows up and look out for Success or Failure messages to give you a hint of what went down. You can go back to the Network Explorer 'Network -> Explorer' and take a look at the recent blockchain events to see the changes you made to the blockchain state. Well Done!
 
@@ -229,7 +246,7 @@ macro, which is part of the [core FRAME pallet library](https://github.com/parit
 
 ### Pallets
 
-The runtime in this project is constructed using many FRAME pallets that ship with [the Substrate repository](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame) and a template pallet that is [defined in the `pallets`](./pallets/template/src/lib.rs) directory. Our backend Rust engineers added another pallet from scratch which was also [defined in the `pallets`](./pallets/counter/src/lib.rs) directory. We made a simple counter pallet that allows users to decrement and increment a counter that triggers state changes to the Runtime's transition logic.
+The runtime in this project is constructed using many FRAME pallets that ship with [the Substrate repository](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame) and a template pallet that is [defined in the `pallets`](./pallets/template/src/lib.rs) directory. Our backend Rust engineers added another pallet from scratch which was also [defined in the `pallets`](./pallets/counter/src/lib.rs) directory. We made a simple counter pallet that allows users to decrement and increment a counter that triggers state changes to the Runtime's transition logic. The [ticketing pallet](./pallets/ticketing/README.md) builds on that with money flows: per-event escrow accounts, capped resale, royalties, refunds and benchmarked weights.
 
 A FRAME pallet is comprised of a number of blockchain primitives, including:
 
@@ -256,3 +273,25 @@ Install [nix](https://nixos.org/) and [nix-direnv](https://github.com/nix-commun
 
 ## Contributing
 Anyone can contribute to this repository, Fork this repository, make changes, create and issue and reference your issue No. in your Pull Request message and our dedicated team members will handle it. We will also try as much as possible to stay up to date with the mainstream repository by updating this boiler plate with all the Core updates and Releases from the Polkadot SDK Team.
+
+### Code formatting
+
+Rust code follows the Polkadot SDK's own rules in [`.rustfmt.toml`](./.rustfmt.toml), so code moves between
+this repo, the SDK and its templates without reformatting. Some of those rules are unstable, so format with the
+nightly `rustfmt`:
+
+```sh
+rustup toolchain install nightly --profile minimal --component rustfmt   # once
+cargo +nightly fmt --all            # format everything
+cargo +nightly fmt --all -- --check # what CI should run
+```
+
+Plain `cargo fmt` uses the pinned stable toolchain, which skips the unstable rules and formats differently.
+
+* To check formatting before every commit, enable the hook in [`.githooks`](./.githooks) once per clone:
+  `git config core.hooksPath .githooks`.
+* To format on save in VS Code, point rust-analyzer at the nightly `rustfmt` in your workspace settings:
+  `"rust-analyzer.rustfmt.overrideCommand": ["rustup", "run", "nightly", "--", "rustfmt", "--edition", "2024"]`.
+* [`.editorconfig`](./.editorconfig) sets indentation and line endings for every other file type.
+* The commit that first applied these rules is listed in [`.git-blame-ignore-revs`](./.git-blame-ignore-revs).
+  Run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips it.

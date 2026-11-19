@@ -1,0 +1,8 @@
+#!/bin/sh
+# Reject commits whose Rust code is not formatted with the repo's .rustfmt.toml.
+# Enable once per clone with: git config core.hooksPath .githooks
+if ! cargo +nightly fmt --all -- --check >/dev/null 2>&1; then
+  echo "Rust code is not formatted. Run 'cargo +nightly fmt --all' and stage the changes." >&2
+  echo "(Needs a nightly toolchain: rustup toolchain install nightly --component rustfmt)" >&2
+  exit 1
+fi
